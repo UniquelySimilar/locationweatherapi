@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn" strict="true" name="XMLConfigTest"
+	packages="org.apache.logging.log4j">
+
+	<Appenders>
+		<Appender type="Console" name="STDOUT">
+			<Layout type="PatternLayout" pattern="%level: METHOD: %class.%method MSG: %msg%n" />
+		</Appender>
+	</Appenders>
+
+	<Loggers>
+		<Logger name="com.tcoveney" level="debug"
+			additivity="false">
+			<AppenderRef ref="STDOUT" />
+		</Logger>
+
+		<Root level="info">
+			<AppenderRef ref="STDOUT" />
+		</Root>
+	</Loggers>
+</Configuration>
