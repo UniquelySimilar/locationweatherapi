@@ -1,7 +1,13 @@
 package com.tcoveney.locationweatherapi.controller;
 
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -15,41 +21,54 @@ public class LocationWeatherController {
 	private static final Logger logger = LogManager.getLogger(LocationWeatherController.class);
 	private final int maxLatitude = 90;
 	private final int maxLongitude = 180;
+	
+	@Value("${apikey.weather}")
+	private String weatherApiKey;
 
 	@GetMapping("/data")
-	public String getLocationWeather(@RequestParam("numLocations") int numLocations) {
-		String retVal = "called 'getLocationWeather()'";
+	public ResponseEntity<String> getLocationWeather(@RequestParam("numLocations") int numLocations) {
+		String responseBody = "{ 'error': 'Return value not set' }";
+		HttpStatus httpStatus = HttpStatus.OK;
+		HttpHeaders responseHeaders= new HttpHeaders();
+		responseHeaders.setContentType(MediaType.APPLICATION_JSON);
 		RestTemplate restTemplate = new RestTemplate(getClientHttpRequestFactory());
-		
-		// TEMPORARY TEST
-		numLocations = 10;
 		
 		try {
 			if (numLocations < 1 || numLocations > 20) {
-				throw new Exception("ERROR: Request parameter 'numLocations' must be between 1 and 20");
+				throw new Exception("Request parameter 'numLocations' must be between 1 and 20");
 			}
 			
 			// Get random latitude values in range -90 to 90:
 			String[] latitudeAry = retrieveRandomNumbers(restTemplate, numLocations, maxLatitude);
 			if (null == latitudeAry) {
-				throw new Exception("ERROR: Could not retrieve latitude numbers.");
+				throw new Exception("Could not retrieve latitude numbers.");
 			}
 			
 			// Get random longitude values in range -180 to 180:
 			String[] longitudeAry = retrieveRandomNumbers(restTemplate, numLocations, maxLongitude);
 			if (null == longitudeAry) {
-				throw new Exception("ERROR: Could not retrieve longitude numbers.");
+				throw new Exception("Could not retrieve longitude numbers.");
 			}
 			
 			// TODO: Create and send weather API requests using numbers
+			// Louisville, CO: 39.9778° N, 105.1319° W (34, 105)
+			String weatherData = this.retrieveWeather(restTemplate, 40, 105);
+			if (null == weatherData) {
+				throw new Exception("Could not retrieve weather data.");
+			}
+			
+			responseBody = weatherData;
 			
 			// TODO: Return weather data as JSON array
 		}
 		catch (Exception e) {
 			logger.error(e.getMessage());
+			responseBody = "{ 'error': '" + e.getMessage() + "'}";
+			// Set response status code general 500 for client
+			httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
 		}
 		
-		return retVal;
+		return new ResponseEntity<String>(responseBody, responseHeaders, httpStatus);
 	}
 	
 	private String[] retrieveRandomNumbers(RestTemplate restTemplate, int numLocations, int max) {
@@ -72,6 +91,21 @@ public class LocationWeatherController {
 		}
 
 		return numAry;
+	}
+	
+	private String retrieveWeather(RestTemplate restTemplate, int latitude, int longitude) {
+		String retVal = null;
+		String url = "http://api.openweathermap.org/data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&appid=" + weatherApiKey;
+		ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
+		int statusCode = responseEntity.getStatusCodeValue();
+		if (statusCode != 200) {
+			logger.error("ERROR: Weather service response status: " + statusCode);
+		}
+		else {
+			retVal = responseEntity.getBody();
+		}
+		
+		return retVal;
 	}
 
 	private ClientHttpRequestFactory getClientHttpRequestFactory() {
