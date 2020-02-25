@@ -1,7 +1,5 @@
 package com.tcoveney.locationweatherapi.controller;
 
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,7 +25,7 @@ public class LocationWeatherController {
 
 	@GetMapping("/data")
 	public ResponseEntity<String> getLocationWeather(@RequestParam("numLocations") int numLocations) {
-		String responseBody = "{ 'error': 'Return value not set' }";
+		String responseBody = "{ \"error\": \"Return value not set\" }";
 		HttpStatus httpStatus = HttpStatus.OK;
 		HttpHeaders responseHeaders= new HttpHeaders();
 		responseHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -50,20 +48,26 @@ public class LocationWeatherController {
 				throw new Exception("Could not retrieve longitude numbers.");
 			}
 			
-			// TODO: Create and send weather API requests using numbers
-			// Louisville, CO: 39.9778° N, 105.1319° W (34, 105)
-			String weatherData = this.retrieveWeather(restTemplate, 40, 105);
-			if (null == weatherData) {
-				throw new Exception("Could not retrieve weather data.");
+			// Create and send weather API requests using numbers
+			String weatherDataAry = "[";
+			for (int i = 0; i < numLocations; i++) {
+				String weatherData = retrieveWeather(restTemplate, latitudeAry[i], longitudeAry[i]);
+				if (null == weatherData) {
+					throw new Exception("Could not retrieve weather data.");
+				}
+				if (i < (numLocations - 1)) {
+					weatherDataAry += weatherData + ",";
+				}
+				else {
+					weatherDataAry += weatherData;
+				}
 			}
 			
-			responseBody = weatherData;
-			
-			// TODO: Return weather data as JSON array
+			responseBody = weatherDataAry + "]";
 		}
 		catch (Exception e) {
 			logger.error(e.getMessage());
-			responseBody = "{ 'error': '" + e.getMessage() + "'}";
+			responseBody = "{ \"error\": \"" + e.getMessage() + "\"}";
 			// Set response status code general 500 for client
 			httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
 		}
@@ -82,7 +86,7 @@ public class LocationWeatherController {
 		}
 		else {
 			String body = responseEntity.getBody();
-			logger.debug("Random number service response body: " + body);
+			//logger.debug("Random number service response body: " + body);
 			String delimiter = System.lineSeparator();
 			numAry = body.split(delimiter);
 //			for (String number : numAry) {
@@ -93,7 +97,7 @@ public class LocationWeatherController {
 		return numAry;
 	}
 	
-	private String retrieveWeather(RestTemplate restTemplate, int latitude, int longitude) {
+	private String retrieveWeather(RestTemplate restTemplate, String latitude, String longitude) {
 		String retVal = null;
 		String url = "http://api.openweathermap.org/data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&appid=" + weatherApiKey;
 		ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
