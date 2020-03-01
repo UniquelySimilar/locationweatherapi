@@ -101,7 +101,8 @@ public class LocationWeatherController {
 	
 	private String retrieveWeather(RestTemplate restTemplate, String latitude, String longitude) {
 		String retVal = null;
-		String url = "https://api.openweathermap.org/data/2.5/weather?lat=" + latitude + "&lon=" + longitude + "&appid=" + weatherApiKey;
+		String url = "https://api.openweathermap.org/data/2.5/weather?lat=" + latitude + "&lon=" + longitude +
+				"&units=imperial&appid=" + weatherApiKey;
 		ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
 		int statusCode = responseEntity.getStatusCodeValue();
 		if (statusCode != 200) {
